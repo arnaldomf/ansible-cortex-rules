@@ -2,62 +2,54 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"time"
 
 	"ansible-cortex-rules/ansible"
-	"ansible-cortex-rules/models"
-	"ansible-cortex-rules/services"
 )
 
-type Response struct {
-	Message string `json:"msg"`
-	Changed bool   `json:"changed"`
-	Failed  bool   `json:"failed"`
-}
-
-func RenderResponse(r *Response) string {
-	data, err := json.Marshal(*r)
+func main() {
+	logFile, err := os.OpenFile("/tmp/cortex-ansible.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		panic(err)
 	}
-	return string(data)
-}
 
-func main() {
-	response := Response{}
-	localRuleGroup := &models.RuleGroup{
-		Name: "my-rule-group",
-		Rules: []models.Rule{
-			{
-				Record:     "node_xpto_file_free",
-				Expression: "100 * node_filesystem_free_bytes{fstype=~\"xfs|ext[34]\"} / node_filesystem_size_bytes{fstype=~\"xfs|ext[34]\"}",
-			},
-		},
+	logger := log.New(logFile, "", log.LstdFlags)
+
+	if len(os.Args) < 2 {
+		panic("expected at least 2 arguments")
 	}
+
+	f, err := os.Open(os.Args[1])
+	if err != nil {
+		logger.Fatal(err)
+	}
+	defer f.Close()
 
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
 	defer cancel()
-	cr := services.NewCortexRuler(ctx, "http://cortex.mgl1.magalucloud.com.br:9009", "/prometheus")
-	state := ansible.CompareRuleGroups(cr, localRuleGroup, "rules")
+	module, err := ansible.ModuleSetup(ctx, f)
+	if err != nil {
+		fmt.Println(module.RenderResponse())
+		logger.Print(err)
+		return
+	}
+
+	state := module.CompareState(logger)
 	if state.GroupFailed() {
-		response.Failed = true
-		response.Message = state.FailedReason
-		fmt.Println(RenderResponse(&response))
+		fmt.Println(module.RenderResponse())
+		logger.Print(module.ResponseMessage())
 		return
 	}
 
 	if state.GroupNeedToChange() || state.GroupNotFound() {
-		err := state.ApplyChange(cr, localRuleGroup, "rules")
+		err := module.ApplyChange(&state)
 		if err != nil {
-			response.Failed = true
-			response.Message = err.Error()
-		} else {
-			response.Failed = false
-			response.Changed = true
+			logger.Print(module.ResponseMessage())
 		}
 	}
-	fmt.Println(RenderResponse(&response))
+	fmt.Println(module.RenderResponse())
 }

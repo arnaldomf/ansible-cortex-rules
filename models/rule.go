@@ -30,19 +30,20 @@ func areStringMapsEquals(m1, m2 map[string]string) bool {
 }
 
 func (r *Rule) IsEqual(r2 *Rule) bool {
+
 	if r.Record == r2.Record && r.Expression == r2.Expression {
 		// this is a recording rule
 		return true
 	}
-	if r.Alert == r2.Alert && r.Expression == r2.Expression && r.For == r2.For {
-		if !areStringMapsEquals(r.Annotations, r2.Annotations) {
-			return false
-		}
-		if !areStringMapsEquals(r.Labels, r2.Labels) {
-			return false
-		}
-		return true
-	}
+	// if r.Alert == r2.Alert && r.Expression == r2.Expression && r.For == r2.For {
+	// 	if !areStringMapsEquals(r.Annotations, r2.Annotations) {
+	// 		return false
+	// 	}
+	// 	if !areStringMapsEquals(r.Labels, r2.Labels) {
+	// 		return false
+	// 	}
+	// 	return true
+	// }
 	return false
 }
 
