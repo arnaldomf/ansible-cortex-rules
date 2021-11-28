@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -11,45 +10,32 @@ import (
 )
 
 func main() {
-	logFile, err := os.OpenFile("/tmp/cortex-ansible.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		panic(err)
-	}
-
-	logger := log.New(logFile, "", log.LstdFlags)
-
 	if len(os.Args) < 2 {
 		panic("expected at least 2 arguments")
 	}
 
-	f, err := os.Open(os.Args[1])
+	ansibleInputFile, err := os.Open(os.Args[1])
 	if err != nil {
-		logger.Fatal(err)
+		panic(err)
 	}
-	defer f.Close()
+	defer ansibleInputFile.Close()
 
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
 	defer cancel()
-	module, err := ansible.ModuleSetup(ctx, f)
+
+	module, err := ansible.ModuleSetup(ctx, ansibleInputFile)
+	logger := module.Logger()
 	if err != nil {
 		fmt.Println(module.RenderResponse())
 		logger.Print(err)
 		return
 	}
 
-	state := module.CompareState(logger)
-	if state.GroupFailed() {
-		fmt.Println(module.RenderResponse())
-		logger.Print(module.ResponseMessage())
+	err = module.Run(logger)
+	if err != nil {
+		logger.Print(err)
 		return
-	}
-
-	if state.GroupNeedToChange() || state.GroupNotFound() {
-		err := module.ApplyChange(&state)
-		if err != nil {
-			logger.Print(module.ResponseMessage())
-		}
 	}
 	fmt.Println(module.RenderResponse())
 }
