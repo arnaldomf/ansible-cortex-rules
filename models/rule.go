@@ -1,18 +1,18 @@
 package models
 
 type RuleGroup struct {
-	Name     string `yaml:"name"`
-	Rules    []Rule `yaml:"rules"`
-	Interval int    `yaml:"interval,omitempty"`
+	Name     string `yaml:"name" json:"name"`
+	Rules    []Rule `yaml:"rules" json:"rules"`
+	Interval int    `yaml:"interval,omitempty" json:"interval,omitempty"`
 }
 
 type Rule struct {
-	Record      string            `yaml:"record,omitempty"`
-	Alert       string            `yaml:"alert,omitempty"`
-	Expression  string            `yaml:"expr"`
-	For         int               `yaml:"for,omitempty"`
-	Annotations map[string]string `yaml:"annotation,omitempty"`
-	Labels      map[string]string `yaml:"labels,omitempty"`
+	Record      string            `yaml:"record,omitempty" json:"record,omitempty"`
+	Alert       string            `yaml:"alert,omitempty" json:"alert,omitempty"`
+	Expression  string            `yaml:"expr" json:"expr"`
+	For         int               `yaml:"for,omitempty" json:"for,omitempty"`
+	Annotations map[string]string `yaml:"annotation,omitempty" json:"annotation,omitempty"`
+	Labels      map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
 }
 
 func areStringMapsEquals(m1, m2 map[string]string) bool {
